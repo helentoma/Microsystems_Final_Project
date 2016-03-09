@@ -12,4 +12,6 @@ end i2c_slave;
 
 architecture func of i2c_slave is
 begin
+
+
 end func;
