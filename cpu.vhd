@@ -3,12 +3,14 @@ library ieee;
 use ieee.std_logic_1164.all;
 use std.textio.all;
 use std.env.all;
-use work.ram.all;
 
 entity cpu is
   port(	CLK:	in std_logic;
         RST:  in std_logic;
-        RAM:  inout ram_type;
+        WE:    out  std_logic;
+        ADDR:  out  std_logic_vector(22 downto 0);
+        D_IN:  in  std_logic_vector(7 downto 0);
+        D_OUT: out std_logic_vector(7 downto 0);
         SDA:  inout std_logic;
         SCL:  out std_logic
   );
@@ -26,7 +28,7 @@ architecture tb of cpu is
   signal I2C_GO, I2C_R_OR_W, I2C_RDY, I2C_FAIL, I2C_RST: std_logic;
   signal I2C_DATA_LEN: natural range 0 to 15;
   signal I2C_REG: regfile;
-  signal I2C_ST, I2C_N_ST: i2c_state_t := IDLE;
+  signal I2C_ST, I2C_N_ST: i2c_state_t;
 
   signal c: natural range 0 to 7;
   signal c_match: natural range 0 to 7;
@@ -39,7 +41,7 @@ begin
   ACLK: process (CLK,RST) is
     variable count: natural range 0 to 31;
   begin
-    if RST='1' then
+    if RST'event and RST='1' then
       I2C_ACLK <= '0';
       count := 0;
     elsif CLK'event and CLK='1' then
@@ -54,7 +56,7 @@ begin
   D_B_CLKS: process (I2C_ACLK,RST) is
     variable count: natural range 0 to 4;
   begin
-    if RST='1' then
+    if RST'event and RST='1' then
       count := 0;
       I2C_BCLK <= '0';
       I2C_DCLK <= '0';
@@ -73,19 +75,15 @@ begin
     end if;
   end process;
 
-  -- I2C_RST <= RST or I2C_FAIL;
-  I2C_RST <= RST;
-  I2C_FSM_SEQ: process (I2C_DCLK,I2C_RST) is
+  I2C_FSM_SEQ: process (I2C_DCLK,RST) is
   begin
-    if I2C_RST='1' then
+    if RST'event and RST='1' then
       I2C_ST <= IDLE;
       I2C_FAIL <= '0';
       c <= 0;
       r <= 0;
     elsif I2C_DCLK'event and I2C_DCLK='1' then
       if c = c_match then
-        c <= 0;
-        I2C_ST <= I2C_N_ST;
         if I2C_ST = DATA_WR_ACK then
           r <= r + 1;
           if SDA ?= '1' then
@@ -96,6 +94,8 @@ begin
         elsif I2C_ST = IDLE then
           r <= 0;
         end if;
+        c <= 0;
+        I2C_ST <= I2C_N_ST;
       else
         c <= c + 1;
       end if;
@@ -165,6 +165,9 @@ begin
     for idx in I2C_REG'range loop
       I2C_REG(idx) <= "00000000";
     end loop;
+    ADDR <= "ZZZZZZZZZZZZZZZZZZZZZZZ";
+    D_OUT <= "ZZZZZZZZ";
+    WE <= 'Z';
     wait until RST='0';
 
 
@@ -172,12 +175,8 @@ begin
     -- which would have been loading into memory when the process was first
     -- loaded and executed. To simulate this, we will read in the matrix from
     -- a file here after the reset. (Just the matrix, not an actual program)
-    RAM(0) <= "00101010";
-    wait until CLK='1';
 
     -- This file read is simulating a new image being recieved from the camera
-    RAM(1) <= "00110011";
-    wait until CLK='1';
 
     -- At this point in the program a new image has just been recieved and a
     -- matrix multiplication is now required in the algorithm
@@ -192,15 +191,15 @@ begin
     wait until CLK='1';
     I2C_REG(2) <= "10100101";
     wait until CLK='1';
-    I2C_REG(3) <= RAM(1);
+    I2C_REG(3) <= "00110011";
     wait until CLK='1';
-    I2C_REG(4) <= RAM(0);
+    I2C_REG(4) <= "00101010";
     wait until CLK='1';
     I2C_GO <= '1';
     wait until I2C_RDY='0';
     I2C_GO <= '0';
     wait until I2C_RDY='1';
-    
+
     wait for 1 us;
     stop(1);
   end process;
