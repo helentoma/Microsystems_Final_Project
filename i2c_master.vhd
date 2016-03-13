@@ -14,6 +14,10 @@ entity i2c_master is port (clock	: IN STD_LOGIC;
 			   endProcess	: IN STD_LOGIC);
 end i2c_master;
 
+-- Note: I am using rising_edge() instead of (clock'EVENT AND clock = '1') because
+-- we are using 'H' and 'L' and not just 0 and 1. Accosrding to Slack Overflow,
+-- rising_edge() detects those changes better.
+
 architecture master_func of i2c_master is
 -- This is not going to be pretty, but it is the only way I could process this
 -- project. I am working on 32 states. Each state is being assigned values. This
@@ -131,5 +135,37 @@ BEGIN
 		finish <= '0';
 	end if;
 END PROCESS;	-- of RST_FINITE_STATE_MACHINE
+
+UPDATING_CURRENT_STATE:
+PROCESS(clock)
+BEGIN
+	if (curr = state20) then
+		if(falling_edge(clock)) then
+			curr <= nxt;
+		else	-- in the case of raising edge of the clock
+			-- only update the state if those conditions hold, else
+			-- keep the current state as is
+			if(endProcess = '1' OR wr = '1') then
+				curr <= nxt;
+			end if;
+		end if;
+	-- in the case of the other states and if the clock's falling edge is true, still update the current
+	elsif(falling_edge(clock)) then
+		if (curr = state1 OR curr = state2 OR curr = state3 OR curr = state4 OR
+		    curr = state5 OR curr = state6 OR curr = state7 OR curr = state8 OR
+		    curr = state9 OR curr = state10 OR curr = state12 OR curr = state13 OR
+		    curr = state14 OR curr = state15 OR curr = state16 OR curr = state17 OR
+		    curr = state18 OR curr = state19 OR curr = state28 OR curr = state29 OR
+		    curr = state30) then
+			curr <= nxt;
+		end if;
+	elsif(rising_edge(clock)) then
+		if(curr = state11 OR curr = state21 OR curr = state22 OR curr = state23 OR
+		   curr = state24 OR curr = state25 OR curr = state26 OR curr = state27 OR 
+		   curr = state31 OR curr = state32) then
+			curr <= nxt;
+		end if;
+	end if;
+END PROCESS; -- of UPDATING_CURRENT_STATE
 
 end master_func;
