@@ -17,7 +17,8 @@ architecture tb of top is
           D_IN:  in  std_logic_vector(7 downto 0);
           D_OUT: out std_logic_vector(7 downto 0);
           SDA:   inout std_logic;
-          SCL:   out std_logic
+          SCL:   out std_logic;
+          INT:   in std_logic
     );
   end component;
 
@@ -29,7 +30,8 @@ architecture tb of top is
           D_IN:  in  std_logic_vector(7 downto 0);
           D_OUT: out std_logic_vector(7 downto 0);
           SDA:   inout std_logic;
-          SCL:   in std_logic
+          SCL:   in std_logic;
+          INT:   out std_logic
      );
   end component;
 
@@ -45,6 +47,7 @@ architecture tb of top is
   end component;
 
   signal CLK_T, RST_T, SDA_T, SCL_T, WE_T: std_logic;
+  signal INT_T: std_logic;
   signal ADDR_T: std_logic_vector(22 downto 0);
   signal D_IN_T, D_OUT_T: std_logic_vector(7 downto 0);
 begin
@@ -62,8 +65,8 @@ begin
     wait for 0.5 ns;
   end process;
 
-  CPU0: cpu port map(CLK_T,RST_T,WE_T,ADDR_T,D_OUT_T,D_IN_T,SDA_T,SCL_T);
-  CP0: coproc port map(CLK_T,RST_T,WE_T,ADDR_T,D_OUT_T,D_IN_T,SDA_T,SCL_T);
+  CPU0: cpu port map(CLK_T,RST_T,WE_T,ADDR_T,D_OUT_T,D_IN_T,SDA_T,SCL_T,INT_T);
+  CP0: coproc port map(CLK_T,RST_T,WE_T,ADDR_T,D_OUT_T,D_IN_T,SDA_T,SCL_T,INT_T);
   RAM0: ram port map(CLK_T,RST_T,WE_T,ADDR_T,D_IN_T,D_OUT_T);
 
   INIT: process begin

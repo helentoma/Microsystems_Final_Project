@@ -12,7 +12,8 @@ entity cpu is
         D_IN:  in  std_logic_vector(7 downto 0);
         D_OUT: out std_logic_vector(7 downto 0);
         SDA:  inout std_logic;
-        SCL:  out std_logic
+        SCL:  out std_logic;
+        INT:  in std_logic
   );
 end entity;
 
@@ -44,7 +45,7 @@ begin
     if RST'event and RST='1' then
       I2C_ACLK <= '0';
       count := 0;
-    elsif CLK'event and CLK='1' then
+    elsif CLK'event and CLK='1' and RST='0' then
       count := count + 1;
       if count = 31 then
         I2C_ACLK <= not I2C_ACLK;
@@ -60,7 +61,7 @@ begin
       count := 0;
       I2C_BCLK <= '0';
       I2C_DCLK <= '0';
-    elsif I2C_ACLK'event and I2C_ACLK='1' then
+    elsif I2C_ACLK'event and I2C_ACLK='1' and RST='0' then
       count := count + 1;
       if count = 1 then
         I2C_BCLK <= '0';
@@ -82,7 +83,7 @@ begin
       I2C_FAIL <= '0';
       c <= 0;
       r <= 0;
-    elsif I2C_DCLK'event and I2C_DCLK='1' then
+    elsif I2C_DCLK'event and I2C_DCLK='1' and RST='0' then
       if c = c_match then
         if I2C_ST = DATA_WR_ACK then
           r <= r + 1;
@@ -152,10 +153,6 @@ begin
       end case;
   end process;
 
-
-  assert I2C_FAIL='0'
-    report "ACK NOT RECV, RESETTING I2C"
-    severity warning;
   PROGRAM_EXE: process is
   begin
     wait until RST='1';
@@ -165,9 +162,6 @@ begin
     for idx in I2C_REG'range loop
       I2C_REG(idx) <= "00000000";
     end loop;
-    ADDR <= "ZZZZZZZZZZZZZZZZZZZZZZZ";
-    D_OUT <= "ZZZZZZZZ";
-    WE <= 'Z';
     wait until RST='0';
 
 
@@ -177,7 +171,22 @@ begin
     -- a file here after the reset. (Just the matrix, not an actual program)
 
     -- This file read is simulating a new image being recieved from the camera
-
+    WE <= '1';
+    ADDR <= "00000000000000000000000";
+    D_OUT <= "01010101";
+    wait until CLK='1';
+    ADDR <= "00000000000000000000001";
+    D_OUT <= "10100101";
+    wait until CLK='1';
+    ADDR <= "00000000000000000000010";
+    D_OUT <= "00110011";
+    wait until CLK='1';
+    ADDR <= "00000000000000000000011";
+    D_OUT <= "00101010";
+    wait until CLK='1';
+    ADDR <= "ZZZZZZZZZZZZZZZZZZZZZZZ";
+    D_OUT <= "ZZZZZZZZ";
+    WE <= 'Z';
     -- At this point in the program a new image has just been recieved and a
     -- matrix multiplication is now required in the algorithm
     wait until CLK='1';
@@ -200,8 +209,12 @@ begin
     I2C_GO <= '0';
     wait until I2C_RDY='1';
 
+    -- at this point your program would be blocking waiting for the coproc
+    -- to complete the operation and notify the CPU
+    wait until INT='1';
     wait for 1 us;
-    stop(1);
+    report "TESTING FINISHED";
+    stop(0);
   end process;
 
 end tb;

@@ -2,7 +2,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use std.textio.all;
-use std.env.all;
 
 entity coproc is
   port(	CLK:	in std_logic;
@@ -12,25 +11,29 @@ entity coproc is
         D_IN:  in  std_logic_vector(7 downto 0);
         D_OUT: out std_logic_vector(7 downto 0);
         SDA:  inout std_logic;
-        SCL:  in std_logic
+        SCL:  in std_logic;
+        INT:  out std_logic
   );
 end entity;
 
 architecture behv of coproc is
   constant matrixBOffset: natural := 0;
   constant newImgOffset: natural := 1920*270;
-  constant MY_ADDR: std_logic_vector(7 downto 0) := "00000010";
 
   type i2c_state_t is (IDLE,ADDR_RD,ADDR_RD_ACK,DATA_RD,DATA_RD_ACK);
   type regfile is array (0 to 15) of std_logic_vector(7 downto 0);
+  constant MY_ADDR: std_logic_vector(7 downto 0) := "00000010";
   signal I2C_START, I2C_STOP, I2C_RDY: std_logic;
   signal I2C_ADDR: std_logic_vector(7 downto 0);
   signal I2C_REG: regfile;
   signal I2C_ST, I2C_N_ST: i2c_state_t;
-
   signal c: natural range 0 to 7;
   signal c_match: natural range 0 to 7;
   signal r: natural range 0 to 15;
+
+  type cp_state_t is (CP_IDLE,CP_READ_MEM,CP_VERIFY,CP_DONE);
+  signal CP_STATE: cp_state_t;
+  signal TMP0, TMP1, TMP2, TMP3: std_logic_vector(7 downto 0);
 begin
   I2C_START_DETECTOR: process (SDA, I2C_ST) is
   begin
@@ -56,7 +59,11 @@ begin
       I2C_ST <= IDLE;
       c <= 0;
       r <= 0;
-    elsif I2C_STOP'event and I2C_STOP ='1' then
+      I2C_ADDR <= "00000000";
+      for i in I2C_REG'range loop
+        I2C_REG(i) <= "00000000";
+      end loop;
+    elsif I2C_STOP'event and I2C_STOP ='1' and RST='0' then
       I2C_ST <= IDLE;
       c <= 0;
       r <= 0;
@@ -130,21 +137,59 @@ begin
   end process;
 
   CO_PROC_CNTRL: process(CLK, RST) is
+    variable c: natural;
   begin
     if RST'event and RST='1' then
       ADDR <= "ZZZZZZZZZZZZZZZZZZZZZZZ";
       D_OUT <= "ZZZZZZZZ";
       WE <= 'Z';
+      CP_STATE <= CP_IDLE;
+      c := 0;
+      INT <= '0';
+    elsif CLK'event and CLK='1' and RST='0' then
+      case CP_STATE is
+        when CP_IDLE =>
+          INT <= '0';
+          if I2C_ADDR=MY_ADDR and I2C_RDY='1' then
+            CP_STATE <= CP_READ_MEM;
+          else
+            CP_STATE <= CP_IDLE;
+          end if;
+        when CP_READ_MEM =>
+          if c=0 then
+            ADDR <= "00000000000000000000000";
+          elsif c=1 then
+            TMP0 <= D_IN;
+          elsif c=2 then
+            ADDR <= "00000000000000000000001";
+          elsif c=3 then
+            TMP1 <= D_IN;
+          elsif c=4 then
+            ADDR <= "00000000000000000000010";
+          elsif c=5 then
+            TMP2 <= D_IN;
+          elsif c=6 then
+            ADDR <= "00000000000000000000011";
+          elsif c=7 then
+            TMP1 <= D_IN;
+          end if;
+          c := c+1;
+          if c=8 then
+            CP_STATE <= CP_VERIFY;
+          else
+            CP_STATE <= CP_READ_MEM;
+          end if;
+        when CP_VERIFY =>
+          if TMP0 = I2C_REG(0) and TMP0 = I2C_REG(0) and TMP0 = I2C_REG(0) and TMP0 = I2C_REG(0) then
+            report "TEST PASSED!!!";
+          else
+            report "TEST FAILED";
+          end if;
+          CP_STATE <= CP_DONE;
+        when CP_DONE =>
+          CP_STATE <= CP_DONE;
+          INT <= '1';
+      end case;
     end if;
-  end process;
-
-  TESTING_PROC: process is
-  begin
-    wait until RST='1';
-    wait until RST='0';
-    wait until I2C_RDY='0';
-    wait until I2C_RDY='1';
-
-    wait;
   end process;
 end behv;
