@@ -168,4 +168,114 @@ BEGIN
 	end if;
 END PROCESS; -- of UPDATING_CURRENT_STATE
 
+-- this is used to sign values to variables for each state. 
+SIGNALS_STATE_MACHINE:
+PROCESS (start, curr)
+BEGIN
+	-- initial values of these because they only change in couple of states
+	ack <= '0';
+	wr <= '0';
+
+	case curr is
+		-- Idle
+		when state1 =>
+			if (falling_edge(start)) then
+				nxt <= state1;
+				buffer_enable_sda <= '1';
+			else
+				nxt = state2;
+				buffer_enable_sda <= '0';
+			end if;
+
+			buffer_enable_scl <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '0';
+		
+		when state2 =>
+			buffer_enable_scl <= '0';
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state3;
+
+		when state3 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state4;
+
+		when state4 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state5;
+
+		when state5 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state6;
+
+		when state6 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state7;
+
+		when state7 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state8;
+	
+		when state8 =>
+			buffer_enable_sda <= '0';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state9;
+
+		when state9 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state10;	
+
+		when state10 =>
+			if (wr = '0') then
+				buffer_enable_sda <= '0';
+			else
+				buffer_enable_sda <= '1';
+			end if;
+
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state11;
+		
+		when state11 =>
+			-- we need to update write here
+			if (endProcess = '1' AND wr = '1') then
+				wr <= '0';
+			else
+				wr <= '1';
+			end if;
+
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state20;
+
+	end case;
+END PROCESS; -- of SIGNALS_STATE_MACHINE
+
 end master_func;
