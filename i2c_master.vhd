@@ -53,7 +53,7 @@ architecture master_func of i2c_master is
 	signal finish			: STD_LOGIC := '1';
 	signal shift_reg_clock		: STD_LOGIC := '0';
 	signal shift_reg_q1		: STD_LOGIC := '0';
-	signal shift_reg_q2		: STD_LOGIC;
+	signal shift_reg_q2		: STD_LOGIC := '0';
 	signal shift_reg_output		: STD_LOGIC;
 	signal buffer_enable_sda	: STD_LOGIC := '0';
 	signal buffer_enable_scl	: STD_LOGIC := '0';
@@ -72,6 +72,10 @@ architecture master_func of i2c_master is
 --temp_clock := '1';
 
 begin
+
+-- initial values:
+scl <= 'H';
+sda <= 'H';
 
 shift_register : shiftRegisterTop port map (clock => shift_reg_clock,
 					    serialIn => inputData,
@@ -93,9 +97,6 @@ sda_activeLow_buff :  activeLow port map (enable => buffer_enable_sda,
 shift_reg_buff : activeLow port map (enable => shift_reg_output,
 				     bufferInput => '0',
 				     bufferOutput => sda);
-
-sda <= 'H';
-scl <= 'H';
 
 SCL_SWITCH:
 PROCESS (clock)
