@@ -64,7 +64,7 @@ architecture behv of coproc is
 begin
 
 
-  slave: i2c_slave port map (clk => CLK,
+  slave: i2c_slave port map (clock => CLK,
   			     inputData => slave_data_in,
 			     outputData => slave_data_out,
 			     sda => SDA,
