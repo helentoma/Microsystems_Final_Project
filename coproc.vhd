@@ -34,7 +34,47 @@ architecture behv of coproc is
   type cp_state_t is (CP_IDLE,CP_READ_MEM,CP_VERIFY,CP_DONE);
   signal CP_STATE: cp_state_t;
   signal TMP0, TMP1, TMP2, TMP3: std_logic_vector(7 downto 0);
+
+  signal slave_data_in	: STD_LOGIC_VECTOR (7 DOWNTO 0) := "00000000";
+  signal slave_data_out	: STD_LOGIC_VECTOR (7 DOWNTO 0) := "00000000";
+  signal slave_wr	: STD_LOGIC := '0';
+  signal slave_ack	: STD_LOGIC := '0';
+  signal slave_writing	: STD_LOGIC := '0';
+  signal slave_start	: STD_LOGIC := '0';
+  signal slave_finish	: STD_LOGIC := '0';
+
+  type matrixMult is array (0 to 2**21) of STD_LOGIC_VECTOR (7 DOWNTO 0);
+
+  component i2c_slave is port  (clock		: IN STD_LOGIC;
+			        inputData	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+			  	outputData	: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+			  	sda		: INOUT STD_LOGIC;
+			  	scl		: IN STD_LOGIC;
+			  	wr		: OUT STD_LOGIC;
+			  	ack		: OUT STD_LOGIC;
+			  	writing		: OUT STD_LOGIC;
+			  	startProcess	: OUT STD_LOGIC;
+			  	endProcess	: OUT STD_LOGIC);
+  end component i2c_slave;
+
+  signal A_matrix	: matrixMult;
+  signal B_matrix	: matrixMult;
+  signal result_matrix	: matrixMult;
+  
 begin
+
+
+  slave: i2c_slave port map (clk => CLK,
+  			     inputData => slave_data_in,
+			     outputData => slave_data_out,
+			     sda => SDA,
+			     scl => SCL,
+			     wr => slave_wr,
+			     ack => slave_ack,
+			     writing => slave_writing,
+			     startProcess => slave_start,
+			     endProcess => slave_finish);
+
   I2C_START_DETECTOR: process (SDA, I2C_ST) is
   begin
     if SDA'event and SDA='0' and (SCL='1' or SCL='H') and (I2C_ST = IDLE) then
