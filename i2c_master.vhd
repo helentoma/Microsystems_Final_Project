@@ -395,6 +395,67 @@ BEGIN
 			shift_reg_clock <= NOT(shift_reg_clock);
 			nxt <= state23;
 
+		when state23 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state24;
+
+		when state24 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state25;
+
+		when state25 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state26;
+
+		when state26 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state27;
+		
+		when state27 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state28;
+
+		when state28 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state29;
+
+		when state29 =>
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			ack <= '1';
+
+			if(endProcess = '0') then
+				buffer_enable_sda <= '0';
+				nxt <= state32;
+			else
+				buffer_enable_sda <= '1';
+				nxt <= state30;
+			end if;
 	end case;
 END PROCESS; -- of SIGNALS_STATE_MACHINE
 
