@@ -3,7 +3,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.ALL;
 
 entity i2c_master is port (clock	: IN STD_LOGIC;
-			   reset	: IN STD_LOGIC;
 			   inputData	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 			   outputData	: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
 			   sda		: INOUT STD_LOGIC;
