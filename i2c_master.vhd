@@ -10,6 +10,7 @@ entity i2c_master is port (clock	: IN STD_LOGIC;
 			   scl		: OUT STD_LOGIC;
 			   wr		: IN STD_LOGIC;
 			   ack		: OUT STD_LOGIC;
+			   writing	: OUT STD_LOGIC;
 			   startProcess	: IN STD_LOGIC;
 			   endProcess	: IN STD_LOGIC);
 end i2c_master;
@@ -174,7 +175,7 @@ PROCESS (start, curr)
 BEGIN
 	-- initial values of these because they only change in couple of states
 	ack <= '0';
-	wr <= '0';
+	writing <= '0';
 
 	case curr is
 		-- Idle
@@ -183,7 +184,7 @@ BEGIN
 				nxt <= state1;
 				buffer_enable_sda <= '1';
 			else
-				nxt = state2;
+				nxt <= state2;
 				buffer_enable_sda <= '0';
 			end if;
 
@@ -264,9 +265,9 @@ BEGIN
 		when state11 =>
 			-- we need to update write here
 			if (endProcess = '1' AND wr = '1') then
-				wr <= '0';
+				writing <= '0';
 			else
-				wr <= '1';
+				writing <= '1';
 			end if;
 
 			buffer_enable_sda <= '1';
@@ -274,6 +275,64 @@ BEGIN
 			shift_reg_q2 <= '0';
 			start_clock <= '1';
 			nxt <= state20;
+
+		when state12 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '1';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state13;
+
+		when state13 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '1';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+			nxt <= state14;
+
+		when state20 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '1';
+			shift_reg_q2 <= '1';
+			start_clock <= '1';
+			shift_reg_clock <= NOT(shift_reg_clock);
+
+			if (TO_X01(sda) = '1' OR endProcess = '1') then
+				nxt <= state30;
+			elsif (wr = '1') then
+				nxt <= state32;
+			else
+				nxt <= state12;
+			end if;
+
+		when state30 =>
+			buffer_enable_sda <= '0';
+			buffer_enable_scl <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '0';
+			nxt <= state31;
+
+		when state31 =>
+			buffer_enable_sda <= '1';
+			buffer_enable_scl <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '0';
+			nxt <= state1;
+
+
+		when state32 =>
+			buffer_enable_sda <= '1';
+			shift_reg_q1 <= '0';
+			shift_reg_q2 <= '0';
+			start_clock <= '1';
+			nxt <= state21;
+
+
+
 
 	end case;
 END PROCESS; -- of SIGNALS_STATE_MACHINE
